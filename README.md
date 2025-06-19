@@ -10,4 +10,6 @@ requirements.txt and run the GUI via
 
 python src/room_personalizer_app.py
 
+Also you may need to put the data set in the correct path. 
+
 Consult the inline comments and this README for configuration options, data requirements and extension points.
