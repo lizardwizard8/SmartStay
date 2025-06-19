@@ -6,14 +6,17 @@ from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from mlxtend.frequent_patterns import apriori, fpgrowth, association_rules  # added for market basket analysis
 from itertools import combinations
 from sklearn.cluster import KMeans
+from pathlib import Path
 
-# ————————————————————————————————
 # STEP 1: Load raw data
-raw_path = r"C:\Users\gunal\Desktop\Bitirme Projesi\final_synced_main_guest_names_dataset.xlsx"
+
+BASE_DIR  = Path(__file__).resolve().parents[1]    
+DATA_DIR  = BASE_DIR / "data"
+OUT_DIR   = DATA_DIR                                 # çıktıları da buraya
+DATA_DIR.mkdir(exist_ok=True)   
+
+raw_path = DATA_DIR / "final_synced_main_guest_names_dataset.xlsx"
 df = pd.read_excel(raw_path)
-
-
-
 
  # — Label-encode Room Direction and preserve it for pairwise plots
 if "Room Direction" in df.columns:
@@ -239,9 +242,9 @@ for name, (f1, f2) in pairs.items():
     X = scaler.fit_transform(X)
 
     algos = {
-        "KMeans":       KMeans(n_clusters=4, random_state=123),
+        "KMeans":       KMeans(n_clusters=7, random_state=123),
         "DBSCAN":       DBSCAN(eps=0.5, min_samples=10),
-        "Agglomerative": AgglomerativeClustering(n_clusters=4)
+        "Agglomerative": AgglomerativeClustering(n_clusters=7)
     }
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -261,6 +264,6 @@ for name, (f1, f2) in pairs.items():
 
 # ————————————————————————————————
 # STEP 8: Export
-out = r"C:\Users\gunal\Desktop\Bitirme Projesi\hotel_clustered_pairs.xlsx"
+out = OUT_DIR / "hotel_clustered_pairs.xlsx"       
 df_processed.to_excel(out, index=False)
 print("Saved all to", out)
