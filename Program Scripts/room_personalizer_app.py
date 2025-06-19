@@ -4,12 +4,17 @@ import joblib
 import numpy as np
 import pandas as pd
 from data_preprocessing import transform_new
+from pathlib import Path 
+
+BASE_DIR  = Path(__file__).resolve().parents[1]   # <Bitirme-Projesi>
+DATA_DIR  = BASE_DIR / "data"
+MODEL_DIR = BASE_DIR / "models"
 
 # Main application class for the Room Personalizer GUI
 class RoomPersonalizerApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        # window title
+        # window title 
         self.title("Room Personalizer")  
         # fixed window size
         self.geometry("500x450")        
@@ -41,22 +46,22 @@ class RoomPersonalizerApp(tk.Tk):
         self._build_output()
 
     def _load_artifacts(self):
-        # Load the clustering model and regression models
-        self.kmeans = joblib.load("models/kmeans.pkl")
-        self.temp_model = joblib.load("models/temp_reg.pkl")
-        self.dimmer_model = joblib.load("models/dimmer_reg.pkl")
-        self.empty_start_model = joblib.load("models/empty_start_reg.pkl")
-        self.empty_end_model = joblib.load("models/empty_end_reg.pkl")
-        # Load mapping of cluster IDs to minibar items
-        self.minibar_lookup = joblib.load("models/minibar_rules.pkl")
-        # Load direction model and its label encoder
-        self.dir_model = joblib.load("models/dir_model.pkl")
-        self.dir_encoder = joblib.load("models/dir_encoder.pkl")
-        # Read and prepare room data for assignment suggestions
-        self.rooms_df = pd.read_excel(
-            "final_synced_main_guest_names_dataset.xlsx",
-            usecols=["Room Number", "Room Type", "Room Direction"]
-        )
+    # modeller
+        self.kmeans           = joblib.load(MODEL_DIR / "kmeans.pkl")          # ➌ DEĞİŞTİR
+        self.temp_model       = joblib.load(MODEL_DIR / "temp_reg.pkl")        # ➌
+        self.dimmer_model     = joblib.load(MODEL_DIR / "dimmer_reg.pkl")      # ➌
+        self.empty_start_model= joblib.load(MODEL_DIR / "empty_start_reg.pkl") # ➌
+        self.empty_end_model  = joblib.load(MODEL_DIR / "empty_end_reg.pkl")   # ➌
+        self.minibar_lookup   = joblib.load(MODEL_DIR / "minibar_rules.pkl")   # ➌
+        self.dir_model        = joblib.load(MODEL_DIR / "dir_model.pkl")       # ➌
+        self.dir_encoder      = joblib.load(MODEL_DIR / "dir_encoder.pkl")     # ➌
+
+    # veri dosyası
+        self.rooms_df = pd.read_excel(                                        # ➍ DEĞİŞTİR
+        DATA_DIR / "final_synced_main_guest_names_dataset.xlsx",
+        usecols=["Room Number", "Room Type", "Room Direction"]
+    )
+
         # Add lowercase columns for case-insensitive matching
         self.rooms_df['_type_lower'] = self.rooms_df['Room Type'].str.strip().str.lower()
         self.rooms_df['_dir_lower'] = self.rooms_df['Room Direction'].str.strip().str.lower()
