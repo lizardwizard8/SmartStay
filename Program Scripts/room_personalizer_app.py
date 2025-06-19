@@ -9,11 +9,14 @@ from data_preprocessing import transform_new
 class RoomPersonalizerApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Room Personalizer")  # window title
-        self.geometry("500x450")        # fixed window size
-        self.resizable(False, False)     # disable resizing
+        # window title
+        self.title("Room Personalizer")  
+        # fixed window size
+        self.geometry("500x450")        
+        # disable resizing
+        self.resizable(False, False)     
 
-        # Apply a clean theme for widgets
+        # Apply a clean ttk theme for widgets
         style = ttk.Style(self)
         style.theme_use('clam')
         style.configure('TLabel', font=('Segoe UI', 10))
@@ -21,17 +24,15 @@ class RoomPersonalizerApp(tk.Tk):
         style.configure('TCombobox', font=('Segoe UI', 10))
         style.configure('TSpinbox', font=('Segoe UI', 10))
 
-        # Load models and room information once at startup
+        # Load ML artifacts and room data once at startup
         self._load_artifacts()
 
-        # Create frames for inputs, button, and output display
-        self.input_frame = ttk.LabelFrame(self, text="Guest Details", padding=(10, 10))
+        # Create container frames for inputs, button, and output display
+        self.input_frame = ttk.LabelFrame(self, text="Guest Details", padding=10)
         self.input_frame.pack(fill='x', padx=10, pady=5)
-
         self.button_frame = ttk.Frame(self, padding=(10, 0))
         self.button_frame.pack(fill='x')
-
-        self.output_frame = ttk.LabelFrame(self, text="Suggestions", padding=(10, 10))
+        self.output_frame = ttk.LabelFrame(self, text="Suggestions", padding=10)
         self.output_frame.pack(fill='both', expand=True, padx=10, pady=5)
 
         # Build UI elements in each section
@@ -51,21 +52,26 @@ class RoomPersonalizerApp(tk.Tk):
         # Load direction model and its label encoder
         self.dir_model = joblib.load("models/dir_model.pkl")
         self.dir_encoder = joblib.load("models/dir_encoder.pkl")
-        # Read room data for assignment suggestions
+        # Read and prepare room data for assignment suggestions
         self.rooms_df = pd.read_excel(
             "final_synced_main_guest_names_dataset.xlsx",
             usecols=["Room Number", "Room Type", "Room Direction"]
         )
+        # Add lowercase columns for case-insensitive matching
+        self.rooms_df['_type_lower'] = self.rooms_df['Room Type'].str.strip().str.lower()
+        self.rooms_df['_dir_lower'] = self.rooms_df['Room Direction'].str.strip().str.lower()
 
     def _build_inputs(self):
         # Guest count input
-        ttk.Label(self.input_frame, text="Number of guests:").grid(row=0, column=0, sticky='w', pady=4)
-        self.guest_count = ttk.Spinbox(self.input_frame, from_=1, to=10, width=5, justify='center')
+        ttk.Label(self.input_frame, text="Number of guests:").grid(row=0, column=0, sticky='w')
+        self.guest_count = ttk.Spinbox(
+            self.input_frame, from_=1, to=10, width=5, justify='center'
+        )
         self.guest_count.set(1)
         self.guest_count.grid(row=0, column=1, sticky='w', padx=5)
 
         # Gender selector
-        ttk.Label(self.input_frame, text="Gender:").grid(row=0, column=2, sticky='w', pady=4, padx=(20,0))
+        ttk.Label(self.input_frame, text="Gender:").grid(row=0, column=2, sticky='w', padx=(20,0))
         self.gender_var = tk.StringVar(value="Female")
         self.gender_cb = ttk.Combobox(
             self.input_frame, textvariable=self.gender_var,
@@ -79,27 +85,27 @@ class RoomPersonalizerApp(tk.Tk):
         self.country_entry.grid(row=1, column=1, columnspan=3, sticky='ew', padx=5)
 
         # Room type dropdown
-        ttk.Label(self.input_frame, text="Room type:").grid(row=2, column=0, sticky='w', pady=4)
+        ttk.Label(self.input_frame, text="Room type:").grid(row=2, column=0, sticky='w')
         types = sorted(self.rooms_df['Room Type'].unique())
-        self.room_type_var = tk.StringVar()
+        self.room_type_var = tk.StringVar(value=types[0])
         self.room_type_cb = ttk.Combobox(
             self.input_frame, textvariable=self.room_type_var,
             values=types, state="readonly"
         )
         self.room_type_cb.grid(row=2, column=1, columnspan=3, sticky='ew', padx=5)
-        self.room_type_cb.current(0)
 
         # Entrance time input
-        ttk.Label(self.input_frame, text="Entrance time (YYYY-MM-DD HH:MM):").grid(
-            row=3, column=0, columnspan=4, sticky='w', pady=(10,4)
-        )
+        ttk.Label(
+            self.input_frame,
+            text="Entrance time (YYYY-MM-DD HH:MM):"
+        ).grid(row=3, column=0, columnspan=4, sticky='w', pady=(10,4))
         self.entrance_entry = ttk.Entry(self.input_frame)
         self.entrance_entry.insert(0, "2025-07-19 15:30")
         self.entrance_entry.grid(row=4, column=0, columnspan=4, sticky='ew', padx=5)
 
         # Make all columns share extra space evenly
-        for i in range(4):
-            self.input_frame.columnconfigure(i, weight=1)
+        for c in range(4):
+            self.input_frame.columnconfigure(c, weight=1)
 
     def _build_button(self):
         # Button to trigger suggestions
@@ -110,11 +116,11 @@ class RoomPersonalizerApp(tk.Tk):
 
     def _build_output(self):
         # Table-like display for results
-        columns = ("Parameter", "Value")
+        cols = ("Parameter", "Value")
         self.tree = ttk.Treeview(
-            self.output_frame, columns=columns, show='headings', height=8
+            self.output_frame, columns=cols, show='headings', height=8
         )
-        for col in columns:
+        for col in cols:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor='center', width=180)
         self.tree.pack(fill='both', expand=True)
@@ -124,13 +130,13 @@ class RoomPersonalizerApp(tk.Tk):
         if end_hr <= start_hr:
             start_hr, end_hr = end_hr, start_hr
         sh = int(np.floor(start_hr)) % 24
-        eh = int(np.ceil(end_hr))  % 24
+        eh = int(np.ceil(end_hr)) % 24
         if eh <= sh:
             eh = (sh + 1) % 24
         return f"{sh:02d}.00–{eh:02d}.00"
 
     def on_suggest(self):
-        # Validate guest count input
+        # Read and validate inputs
         try:
             guests = int(self.guest_count.get())
         except ValueError:
@@ -143,10 +149,10 @@ class RoomPersonalizerApp(tk.Tk):
             "Guest Gender": self.gender_var.get(),
             "Guest Country": self.country_entry.get().strip(),
             "Room Type": self.room_type_var.get(),
-            "Entrance Time": self.entrance_entry.get().strip(),
+            "Entrance Time": self.entrance_entry.get().strip()
         }
 
-        # Get suggestions or show error
+        # Generate suggestions or show error
         try:
             rec = self._suggest(record)
         except Exception as e:
@@ -154,10 +160,10 @@ class RoomPersonalizerApp(tk.Tk):
             return
 
         # Display each suggestion in the table
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        for key, value in rec.items():
-            self.tree.insert('', 'end', values=(key, value))
+        for iid in self.tree.get_children():
+            self.tree.delete(iid)
+        for k, v in rec.items():
+            self.tree.insert('', 'end', values=(k, v))
 
     def _suggest(self, record, n_minibar=3):
         # Convert inputs and predict settings
@@ -167,21 +173,26 @@ class RoomPersonalizerApp(tk.Tk):
 
         temp_c = float(self.temp_model.predict(X_full)[0])
         dimmer = int(np.clip(self.dimmer_model.predict(X_full)[0], 0, 100))
-        start_hr = float(self.empty_start_model.predict(X_full)[0])
-        end_hr = float(self.empty_end_model.predict(X_full)[0])
-        interval = self._format_interval(start_hr, end_hr)
+        s_hr = float(self.empty_start_model.predict(X_full)[0])
+        e_hr = float(self.empty_end_model.predict(X_full)[0])
+        interval = self._format_interval(s_hr, e_hr)
         items = self.minibar_lookup.get(cid, ["Sparkling Water"])[:n_minibar]
 
         # Predict room direction and select room number
         code = self.dir_model.predict(X_full)[0]
         dir_label = self.dir_encoder.inverse_transform([code])[0]
-        candidates = self.rooms_df[
-            (self.rooms_df["Room Type"] == record["Room Type"]) &
-            (self.rooms_df["Room Direction"] == dir_label)
+        # Case-insensitive matching against lowercase helper columns
+        rtype = record['Room Type'].strip().lower()
+        dlow = dir_label.strip().lower()
+        cand = self.rooms_df[
+            (self.rooms_df['_type_lower'] == rtype) &
+            (self.rooms_df['_dir_lower'] == dlow)
         ]
-        if candidates.empty:
-            candidates = self.rooms_df[self.rooms_df["Room Type"] == record["Room Type"]]
-        room_num = candidates.sample(1)["Room Number"].iloc[0]
+        if cand.empty:
+            cand = self.rooms_df[self.rooms_df['_type_lower'] == rtype]
+        if cand.empty:
+            cand = self.rooms_df
+        room_num = cand.sample(1)['Room Number'].iloc[0]
 
         return {
             "Temperature (°C)": f"{temp_c:.1f}",
