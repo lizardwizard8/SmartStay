@@ -5,6 +5,11 @@ import os
 import joblib
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MultiLabelBinarizer
 from sklearn.compose import ColumnTransformer
+from pathlib import Path
+
+BASE_DIR  = Path(__file__).resolve().parents[1]   # <Bitirme-Projesi>
+MODEL_DIR = BASE_DIR / "models"
+MODEL_DIR.mkdir(exist_ok=True)    
 
 DATA_PATH = "final_synced_main_guest_names_dataset.xlsx"
 
@@ -77,14 +82,14 @@ def fit_transform(df: pd.DataFrame):
     pipe = make_pipeline()
     X = pipe.fit_transform(df)
     os.makedirs("models", exist_ok=True)
-    joblib.dump(pipe, "models/preprocess.pkl")
+    joblib.dump(pipe, MODEL_DIR / "preprocess.pkl") 
     return X, pipe
 
 def transform_new(record):
     """
     Apply the saved pipeline to a new record (dict or DataFrame).
     """
-    pipe = joblib.load("models/preprocess.pkl")
+    pipe = joblib.load(MODEL_DIR / "preprocess.pkl")
     import pandas as pd
 
     # Convert dict input into a single-row DataFrame
